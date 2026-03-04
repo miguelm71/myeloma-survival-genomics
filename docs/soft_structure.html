@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEO SOFT File Structure</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --border: #1e2d45;
+    --series: #0ea5e9;
+    --platform: #8b5cf6;
+    --sample: #10b981;
+    --accent: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code: #1e3a5f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #0ea5e9, #8b5cf6, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .diagram {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+  }
+
+  /* File container */
+  .file {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .file-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  .file-header:hover { background: rgba(255,255,255,0.05); }
+
+  .file-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .file-title {
+    flex: 1;
+  }
+
+  .file-title h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .file-title p {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  /* Sections */
+  .section {
+    border-left: 3px solid transparent;
+    margin: 0;
+    transition: all 0.2s;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .section-header:hover { background: rgba(255,255,255,0.02); }
+
+  .section-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .section-info { flex: 1; }
+
+  .section-info h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-info p {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .section-content {
+    padding: 0 24px 20px 68px;
+    display: none;
+  }
+
+  .section-content.open { display: block; }
+
+  /* Series */
+  .series .section-header { border-left: 3px solid var(--series); }
+  .series .section-number { background: rgba(14,165,233,0.15); color: var(--series); }
+  .series .badge { background: rgba(14,165,233,0.15); color: var(--series); }
+
+  /* Platform */
+  .platform .section-header { border-left: 3px solid var(--platform); }
+  .platform .section-number { background: rgba(139,92,246,0.15); color: var(--platform); }
+  .platform .badge { background: rgba(139,92,246,0.15); color: var(--platform); }
+
+  /* Sample */
+  .sample .section-header { border-left: 3px solid var(--sample); }
+  .sample .section-number { background: rgba(16,185,129,0.15); color: var(--sample); }
+  .sample .badge { background: rgba(16,185,129,0.15); color: var(--sample); }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 24px;
+  }
+
+  /* Code block */
+  .code-block {
+    background: var(--code);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    border: 1px solid rgba(14,165,233,0.2);
+    overflow-x: auto;
+  }
+
+  .code-key { color: var(--accent); }
+  .code-val { color: #86efac; }
+  .code-comment { color: var(--muted); }
+  .code-header { color: var(--series); font-weight: 700; }
+  .code-platform-h { color: var(--platform); font-weight: 700; }
+  .code-sample-h { color: var(--sample); font-weight: 700; }
+
+  /* Table preview */
+  .table-preview {
+    margin-top: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .table-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+  }
+
+  .table-preview th {
+    background: rgba(255,255,255,0.05);
+    padding: 8px 12px;
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-preview td {
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text);
+  }
+
+  .table-preview tr:last-child td { border-bottom: none; }
+  .table-preview tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* GEOparse mapping */
+  .mapping {
+    margin-top: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .mapping h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .mapping-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .mapping-item {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .mapping-item:hover { border-color: rgba(255,255,255,0.15); }
+
+  .mapping-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .mapping-source {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+  }
+
+  .mapping-target {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .mapping-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .chevron {
+    transition: transform 0.2s;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .chevron.open { transform: rotate(180deg); }
+
+  .sample-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sample);
+  }
+
+  .repeat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--sample);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>GEO SOFT File Structure</h1>
+  <p>GSE24080_family.soft.gz — 559 Multiple Myeloma patients — click sections to expand</p>
+</div>
+
+<div class="diagram">
+
+  <div class="file">
+
+    <!-- SERIES -->
+    <div class="section series">
+      <div class="section-header" onclick="toggle(this)">
+        <div class="section-number">1</div>
+        <div class="section-info">
+          <h3>^SERIES <span class="badge">GSE24080</span></h3>
+          <p>Study-level metadata — title, abstract, design, authors, publication</p>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-content">
+        <div class="code-block">
+<span class="code-header">^SERIES = GSE24080</span>
+<span class="code-key">!Series_title</span> = <span class="code-val">"Gene expression profiling for prediction of overall survival..."</span>
+<span class="code-key">!Series_summary</span> = <span class="code-val">"MAQC-II multiple myeloma dataset. 559 patients..."</span>
+<span class="code-key">!Series_overall_design</span> = <span class="code-val">"Training (340) and Validation (219) sets"</span>
+<span class="code-key">!Series_pubmed_id</span> = <span class="code-val">20676074</span>
+<span class="code-key">!Series_sample_id</span> = <span class="code-val">GSM592391, GSM592392, ... (559 total)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- PLATFORM -->
+    <div class="section platform">
+      <div class="section-header" onclick="toggle(this)">
+        <div class="section-number">2</div>
+        <div class="section-info">
+          <h3>^PLATFORM <span class="badge">GPL570</span></h3>
+          <p>Affymetrix U133Plus2 array — probe annotations mapping probe IDs to gene symbols</p>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-content">
+        <div class="code-block">
+<span class="code-platform-h">^PLATFORM = GPL570</span>
+<span class="code-key">!Platform_title</span> = <span class="code-val">"Affymetrix Human Genome U133 Plus 2.0 Array"</span>
+<span class="code-key">!Platform_technology</span> = <span class="code-val">"in situ oligonucleotide"</span>
+<span class="code-key">!Platform_organism</span> = <span class="code-val">"Homo sapiens"</span>
+<span class="code-key">!Platform_data_row_count</span> = <span class="code-val">54675</span>
+        </div>
+        <div class="table-preview">
+          <table>
+            <thead>
+              <tr>
+                <th>ID (Probe)</th>
+                <th>Gene Symbol</th>
+                <th>Gene Title</th>
+                <th>Chromosome</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1007_s_at</td><td>DDR1</td><td>discoidin domain receptor tyrosine kinase 1</td><td>6</td></tr>
+              <tr><td>1053_at</td><td>RFC2</td><td>replication factor C subunit 2</td><td>7</td></tr>
+              <tr><td>117_at</td><td>HSPA6</td><td>heat shock protein family A member 6</td><td>1</td></tr>
+              <tr><td>229819_at</td><td>—</td><td>uncharacterized locus</td><td>—</td></tr>
+              <tr><td style="color:#64748b">... 54,671 more probes</td><td></td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.72rem; color:var(--muted); margin-top:8px; font-family:'JetBrains Mono',monospace;">
+          ⚠ Not all probes map to a known gene — annotation step required
+        </p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SAMPLES -->
+    <div class="section sample">
+      <div class="section-header" onclick="toggle(this)">
+        <div class="section-number">3</div>
+        <div class="section-info">
+          <h3>^SAMPLE <span class="badge">× 559</span></h3>
+          <p>Per-patient metadata + gene expression table — repeated 559 times, one per patient</p>
+          <div class="sample-count">
+            <div class="dot"></div>
+            <span class="repeat-label">repeated 559 times in the file</span>
+          </div>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-content">
+        <div class="code-block">
+<span class="code-sample-h">^SAMPLE = GSM592391</span>
+<span class="code-key">!Sample_title</span> = <span class="code-val">"P0002-01-FAKE03-U133Plus-2"</span>
+<span class="code-key">!Sample_characteristics_ch1</span> = <span class="code-val">"age: 61.0"</span>
+<span class="code-key">!Sample_characteristics_ch1</span> = <span class="code-val">"Sex: male"</span>
+<span class="code-key">!Sample_characteristics_ch1</span> = <span class="code-val">"os milestone outcome (24 months): 0"</span>
+<span class="code-key">!Sample_characteristics_ch1</span> = <span class="code-val">"efs milestone outcome (24 months): 0"</span>
+<span class="code-key">!sample_table_begin</span>
+        </div>
+        <div class="table-preview">
+          <table>
+            <thead>
+              <tr>
+                <th>ID_REF (Probe)</th>
+                <th>VALUE (Expression)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>229819_at</td><td>4.6004</td></tr>
+              <tr><td>217757_at</td><td>6.8917</td></tr>
+              <tr><td>1558450_at</td><td>8.2270</td></tr>
+              <tr><td>214440_at</td><td>9.1160</td></tr>
+              <tr><td style="color:#64748b">... 54,671 more rows</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.72rem; color:var(--muted); margin-top:8px; font-family:'JetBrains Mono',monospace;">
+          Values are log2-normalized expression intensities from Affymetrix GCOS 1.1
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GEOparse mapping -->
+  <div class="mapping">
+    <h3>How GEOparse maps the SOFT structure to Python objects</h3>
+    <div class="mapping-grid">
+      <div class="mapping-item">
+        <div class="mapping-arrow">^SERIES →</div>
+        <div class="mapping-target" style="color:var(--series)">gse</div>
+        <div class="mapping-desc">Top-level GSE object with study metadata</div>
+      </div>
+      <div class="mapping-item">
+        <div class="mapping-arrow">^PLATFORM →</div>
+        <div class="mapping-target" style="color:var(--platform)">gse.gpls['GPL570']</div>
+        <div class="mapping-desc">Platform with probe→gene annotation table</div>
+      </div>
+      <div class="mapping-item">
+        <div class="mapping-arrow">^SAMPLE ×559 →</div>
+        <div class="mapping-target" style="color:var(--sample)">gse.gsms['GSM...']</div>
+        <div class="mapping-desc">Dict of 559 samples, each with .metadata and .table</div>
+      </div>
+      <div class="mapping-item">
+        <div class="mapping-arrow">characteristics →</div>
+        <div class="mapping-target" style="color:var(--accent)">sample.metadata</div>
+        <div class="mapping-desc">Age, sex, OS/EFS outcomes per patient</div>
+      </div>
+      <div class="mapping-item">
+        <div class="mapping-arrow">expression table →</div>
+        <div class="mapping-target" style="color:var(--accent)">sample.table</div>
+        <div class="mapping-desc">DataFrame (54675 × 2): probe ID + expression value</div>
+      </div>
+      <div class="mapping-item">
+        <div class="mapping-arrow">probe annotations →</div>
+        <div class="mapping-target" style="color:var(--accent)">gpl.table</div>
+        <div class="mapping-desc">DataFrame mapping probe IDs to gene symbols</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggle(header) {
+    const content = header.nextElementSibling;
+    const chevron = header.querySelector('.chevron');
+    const isOpen = content.classList.contains('open');
+    content.classList.toggle('open', !isOpen);
+    chevron.classList.toggle('open', !isOpen);
+  }
+</script>
+
+</body>
+</html>
