@@ -1,5 +1,35 @@
 # Multiple Myeloma Survival Prediction & Biomarker Discovery
 
+## ⚠️ Disclaimer
+
+**This project is not a medical product and is not intended for clinical use.**
+
+This repository is a portfolio project demonstrating the application of
+explainable AI (XAI) techniques to high-dimensional genomic data. Its purpose
+is to showcase a complete ML pipeline including data extraction, exploratory
+analysis, modeling, and SHAP-based explainability — not to provide clinical
+predictions or medical guidance.
+
+The models developed here:
+- Have not been clinically validated
+- Are based on a limited dataset (340 training patients)
+- Use a surrogate time variable for Kaplan-Meier analysis instead of
+  real follow-up times
+- Should not be used to inform medical decisions under any circumstances
+
+For research use only.
+
+## AI Assistance
+
+This project was developed with the assistance of [Claude](https://claude.ai)
+(Anthropic)
+
+All results, analyses and conclusions were reviewed and validated by the author.
+Biological interpretations of specific genes (particularly less characterized
+lncRNAs such as LOC646762, ASH1L-AS1) are based on general molecular biology
+knowledge and should be validated against primary literature before drawing
+clinical conclusions.
+
 ## Overview
 End-to-end machine learning pipeline for predicting survival outcomes in Multiple
 Myeloma patients using gene expression data (transcriptomics). The project combines
@@ -46,7 +76,7 @@ myeloma-survival-genomics/
 │   ├── 01_data_download.ipynb     # Data extraction and preprocessing
 │   ├── 02_eda.ipynb               # Exploratory Data Analysis
 │   ├── 03_modeling.ipynb          # Survival modeling
-│   └── 04_explainability.ipynb    # SHAP biomarker analysis (planned)
+│   └── 04_explainability.ipynb    # SHAP biomarker analysis
 ├── models/
 │   ├── xgb_B_efs_tuned.joblib     # Best model: XGBoost + Strategy B + EFS
 │   ├── xgb_A_os_tuned.joblib      # XGBoost + Strategy A + OS
@@ -153,10 +183,59 @@ XGBoost + Strategy B (LASSO strict, 31 genes) + EFS 24m
 All 18 baseline combinations + 3 tuned models tracked with MLflow.
 Dataset metadata, model parameters, and artifacts logged for full reproducibility.
 
-### 4. Explainability (SHAP)
-- Identify top prognostic genes from SHAP values
-- Validate findings against known MM biomarkers
-- Kaplan-Meier survival curves stratified by gene expression
+### 4. Explainability — SHAP (✅ Complete)
+
+SHAP (SHapley Additive exPlanations) was applied to the best model
+(XGBoost + Strategy B + EFS 24m) on the 214-patient validation set.
+
+**Top genes by mean absolute SHAP value:**
+
+| Rank | Gene | Mean |SHAP| | Direction | Biological role |
+|------|------|-------------|-----------|-----------------|
+| 1 | LOC646762 | 0.438 | Protective | Uncharacterized lncRNA — novel candidate |
+| 2 | AC005523.3 | 0.346 | Risk | Uncharacterized lncRNA |
+| 3 | NMU | 0.296 | Mixed | Neuropeptide, tumor progression |
+| 4 | BCAR3 | 0.290 | Risk | Treatment resistance adaptor |
+| 5 | ASH1L-AS1 | 0.289 | Protective | Epigenetic regulation (lncRNA) |
+| 6 | ARPC5 | 0.276 | Risk | Cell migration (Arp2/3 complex) |
+| 7 | WDR12 | 0.254 | Risk | RNA processing |
+| 8 | ZWILCH | 0.219 | Risk | Kinetochore — cell division ✅ EDA |
+| 9 | TCRBV15S1 | 0.193 | Protective | T-cell receptor — immune signal ✅ EDA |
+
+**Validation against EDA findings:**
+- ZWILCH (cell division) confirms the proliferation signal from Cluster 12 ✅
+- TCRBV15S1 (T-cell receptor) confirms the immune protective signal from Cluster 15 ✅
+
+**Local explanations (waterfall plots):**
+- High risk patient (predicted: 0.991, actual event: 1) — model correctly identifies
+  risk driven by BCAR3, LOC646762, NMU, YWHAH all pushing in the same direction
+- Low risk patient (predicted: 0.005, actual event: 0) — LOC646762 low expression
+  is the dominant protective factor (-1.17 SHAP)
+- Median risk patient (predicted: 0.145 ≈ base rate 0.14) — mixed signals,
+  model appropriately defaults to average when evidence is ambiguous
+
+**Kaplan-Meier survival curves:**
+Patients stratified by median expression of top SHAP genes:
+
+| Gene | p-value | Significant | Finding |
+|------|---------|-------------|---------|
+| ASH1L-AS1 | 0.021 | ✅ | High expression → better EFS |
+| LOC646762 | 0.080 | borderline | Trend towards better EFS |
+| BCAR3 | 0.390 | ❌ | No significant individual effect |
+| AC005523.3 | 0.442 | ❌ | No significant individual effect |
+| NMU | 0.396 | ❌ | No significant individual effect |
+| ARPC5 | 0.243 | ❌ | No significant individual effect |
+
+**Key finding — ASH1L-AS1:**
+The only gene with statistically significant survival stratification (p=0.021).
+High expression of this antisense lncRNA to ASH1L histone methyltransferase
+is associated with better EFS — suggesting a protective epigenetic regulatory
+role in MM progression. Novel candidate biomarker for future investigation.
+
+**Methodological note:**
+Risk rank was used as a surrogate for follow-up time since exact survival
+times are not available in GSE24080. Results should be validated with
+actual survival time data (available in MMRF CoMMpass).
 
 ## Documentation
 - [GEO SOFT File Structure](docs/soft_structure.html) — interactive diagram explaining
@@ -175,7 +254,7 @@ Dataset metadata, model parameters, and artifacts logged for full reproducibilit
 | Data extraction & preprocessing | ✅ Complete |
 | EDA | ✅ Complete |
 | Modeling | ✅ Complete |
-| Explainability (SHAP) | 🔜 Planned |
+| Explainability (SHAP) | ✅ Complete |
 | Deployment | 🔜 Planned |
 
 ## References
